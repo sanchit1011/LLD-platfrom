@@ -1,0 +1,21 @@
+{
+  "dependencies": {
+    "@google/genai": "^2.21.0",
+    "dotenv": "^17.4.2"
+  },
+  "name": "lld",
+  "version": "1.0.0",
+  "description": "A focused MVP for practicing Low-Level Design problems, submitting solutions, and receiving structured AI feedback.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

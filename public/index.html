@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LLD Practice — Design. Code. Improve.</title>
+<style>
+/* ── Design tokens ── */
+:root {
+  --bg-0:       #0d0f14;
+  --bg-1:       #13161e;
+  --bg-2:       #1a1e28;
+  --bg-3:       #22273a;
+  --border:     #2a3045;
+  --border-hi:  #3d4a6b;
+  --txt-0:      #e8eaf2;
+  --txt-1:      #a8b0cc;
+  --txt-2:      #626d8a;
+  --accent:     #6c8cff;
+  --accent-dim: #1f2d5c;
+  --green:      #3ecf8e;
+  --green-dim:  #0f3325;
+  --yellow:     #f5c542;
+  --yellow-dim: #3a3010;
+  --red:        #f26464;
+  --red-dim:    #3a1414;
+  --easy:       #3ecf8e;
+  --medium:     #f5c542;
+  --hard:       #f26464;
+  --radius-sm:  6px;
+  --radius:     10px;
+  --radius-lg:  16px;
+  --font-mono:  'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --font-sans:  'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --shadow:     0 4px 24px rgba(0,0,0,.45);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg-0);
+  color: var(--txt-0);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-1); }
+::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+
+/* ── Layout ── */
+.app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+nav {
+  background: var(--bg-1);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  padding: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-icon {
+  width: 32px; height: 32px; background: var(--accent);
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 800; color: #fff;
+  flex-shrink: 0;
+}
+.logo-text { font-size: 13px; font-weight: 700; color: var(--txt-0); letter-spacing: 0.02em; }
+.logo-sub  { font-size: 10px; color: var(--txt-2); letter-spacing: 0.06em; }
+
+nav ul { list-style: none; padding: 12px 0; flex: 1; }
+nav ul li a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 18px;
+  color: var(--txt-1);
+  text-decoration: none;
+  font-size: 13px; font-weight: 500;
+  border-left: 2px solid transparent;
+  transition: color .15s, background .15s, border-color .15s;
+}
+nav ul li a:hover  { color: var(--txt-0); background: var(--bg-2); }
+nav ul li a.active { color: var(--accent); background: var(--accent-dim); border-left-color: var(--accent); }
+nav ul li a .icon  { font-size: 16px; width: 20px; text-align: center; }
+
+.nav-footer { padding: 14px 18px; border-top: 1px solid var(--border); }
+.user-chip {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-2); border-radius: var(--radius); padding: 8px 12px;
+  font-size: 12px;
+}
+.avatar {
+  width: 28px; height: 28px; background: var(--accent);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff;
+}
+
+main { flex: 1; overflow-y: auto; }
+
+/* ── Pages ── */
+.page { display: none; padding: 32px 36px; max-width: 1100px; }
+.page.active { display: block; }
+
+/* ── Page header ── */
+.page-header { margin-bottom: 28px; }
+.page-title { font-size: 22px; font-weight: 700; color: var(--txt-0); }
+.page-sub   { color: var(--txt-2); margin-top: 4px; font-size: 13px; }
+
+/* ── Cards ── */
+.card {
+  background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+}
+.card + .card { margin-top: 16px; }
+
+/* ── Problem grid ── */
+.filters {
+  display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.filter-btn {
+  background: var(--bg-2); border: 1px solid var(--border);
+  color: var(--txt-1); border-radius: var(--radius-sm);
+  padding: 6px 14px; font-size: 12px; font-weight: 500; cursor: pointer;
+  transition: all .15s;
+}
+.filter-btn:hover  { border-color: var(--accent); color: var(--accent); }
+.filter-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+.problems-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;
+}
+.problem-card {
+  background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px; cursor: pointer;
+  transition: border-color .15s, transform .15s, box-shadow .15s;
+  position: relative; overflow: hidden;
+}
+.problem-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent); opacity: 0; transition: opacity .15s;
+}
+.problem-card:hover { border-color: var(--border-hi); transform: translateY(-2px); box-shadow: var(--shadow); }
+.problem-card:hover::before { opacity: 1; }
+
+.problem-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+.problem-icon { font-size: 24px; }
+.badge {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 20px; letter-spacing: 0.05em;
+}
+.badge.easy   { background: #0f3325; color: var(--easy); }
+.badge.medium { background: var(--yellow-dim); color: var(--yellow); }
+.badge.hard   { background: var(--red-dim); color: var(--red); }
+
+.problem-title { font-size: 15px; font-weight: 600; color: var(--txt-0); margin-bottom: 8px; }
+.problem-desc  { font-size: 12px; color: var(--txt-2); line-height: 1.5; margin-bottom: 16px; }
+.problem-meta  { display: flex; align-items: center; gap: 12px; }
+.meta-item     { font-size: 11px; color: var(--txt-2); display: flex; align-items: center; gap: 4px; }
+
+/* ── Problem detail ── */
+.back-btn {
+  background: none; border: 1px solid var(--border); color: var(--txt-1);
+  padding: 6px 14px; border-radius: var(--radius-sm); cursor: pointer;
+  font-size: 12px; display: flex; align-items: center; gap: 6px; margin-bottom: 20px;
+  transition: all .15s;
+}
+.back-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.problem-layout { display: grid; grid-template-columns: 1fr 420px; gap: 20px; align-items: start; }
+
+.section-label {
+  font-size: 11px; font-weight: 700; color: var(--txt-2);
+  letter-spacing: 0.08em; margin-bottom: 10px; display: block;
+}
+.req-list { list-style: none; }
+.req-list li {
+  display: flex; gap: 10px; padding: 6px 0;
+  border-bottom: 1px solid var(--border); font-size: 13px; color: var(--txt-1);
+}
+.req-list li:last-child { border-bottom: none; }
+.req-num { color: var(--accent); font-weight: 700; font-size: 11px; flex-shrink: 0; margin-top: 2px; }
+
+.hints-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.hint-tag {
+  background: var(--bg-2); border: 1px solid var(--border);
+  color: var(--txt-1); border-radius: 20px; padding: 4px 12px; font-size: 11px;
+}
+
+.rubric-table { width: 100%; border-collapse: collapse; }
+.rubric-table th {
+  text-align: left; font-size: 11px; font-weight: 600; color: var(--txt-2);
+  padding: 8px 10px; border-bottom: 1px solid var(--border);
+}
+.rubric-table td { padding: 9px 10px; font-size: 12px; border-bottom: 1px solid var(--border); color: var(--txt-1); }
+.rubric-table tr:last-child td { border-bottom: none; }
+.det-badge {
+  font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 600;
+}
+.det-badge.yes { background: var(--green-dim); color: var(--green); }
+.det-badge.no  { background: var(--accent-dim); color: var(--accent); }
+
+/* ── Editor / Submission panel ── */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.tab-btn {
+  background: none; border: none; color: var(--txt-2);
+  padding: 10px 16px; font-size: 13px; font-weight: 500; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: all .15s;
+}
+.tab-btn:hover  { color: var(--txt-0); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+textarea, .code-editor {
+  width: 100%; background: var(--bg-0); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--txt-0); font-size: 13px;
+  padding: 14px; resize: vertical; outline: none;
+  transition: border-color .15s;
+  font-family: var(--font-sans);
+}
+textarea:focus, .code-editor:focus { border-color: var(--accent); }
+.code-editor { font-family: var(--font-mono); font-size: 12px; min-height: 280px; }
+
+.submit-btn {
+  width: 100%; padding: 12px; border-radius: var(--radius-sm);
+  background: var(--accent); color: #fff; border: none;
+  font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 14px;
+  transition: opacity .15s, transform .1s;
+}
+.submit-btn:hover   { opacity: .9; }
+.submit-btn:active  { transform: scale(.98); }
+.submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── Evaluation results ── */
+.eval-panel { margin-top: 0; }
+.score-ring {
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 4px;
+  width: 90px; height: 90px; border-radius: 50%;
+  border: 4px solid var(--accent); margin: 0 auto 16px;
+  position: relative;
+}
+.score-num  { font-size: 26px; font-weight: 800; color: var(--txt-0); }
+.score-sub  { font-size: 10px; color: var(--txt-2); }
+.score-summary { font-size: 13px; color: var(--txt-1); text-align: center; margin-bottom: 18px; line-height: 1.5; }
+
+.criterion-row {
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); margin-bottom: 10px; overflow: hidden;
+}
+.criterion-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; cursor: pointer;
+}
+.criterion-score {
+  font-size: 14px; font-weight: 700; width: 36px; text-align: center;
+  flex-shrink: 0;
+}
+.score-bar-wrap { flex: 1; background: var(--bg-0); border-radius: 3px; height: 4px; }
+.score-bar { height: 100%; border-radius: 3px; transition: width .5s; }
+.criterion-name { font-size: 13px; font-weight: 500; color: var(--txt-0); min-width: 140px; }
+.conf-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.conf-dot.high   { background: var(--green); }
+.conf-dot.medium { background: var(--yellow); }
+.conf-dot.low    { background: var(--red); }
+
+.criterion-body { padding: 0 14px 12px; display: none; }
+.criterion-body.open { display: block; }
+.ev-row { margin-bottom: 10px; }
+.ev-label { font-size: 10px; font-weight: 700; color: var(--txt-2); letter-spacing: 0.06em; margin-bottom: 3px; }
+.ev-text  { font-size: 12px; color: var(--txt-1); line-height: 1.5; }
+.ev-suggestion {
+  background: var(--accent-dim); border: 1px solid var(--accent);
+  border-radius: var(--radius-sm); padding: 8px 12px;
+  font-size: 12px; color: var(--accent); margin-top: 6px;
+}
+
+/* ── Status states ── */
+.status-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; padding: 4px 12px;
+  border-radius: 20px;
+}
+.status-pill.submitted  { background: var(--accent-dim); color: var(--accent); }
+.status-pill.evaluating { background: var(--yellow-dim); color: var(--yellow); }
+.status-pill.completed  { background: var(--green-dim); color: var(--green); }
+.status-pill.failed     { background: var(--red-dim); color: var(--red); }
+.pulse { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+/* ── History page ── */
+.history-grid { display: grid; gap: 14px; }
+.history-card {
+  background: var(--bg-1); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+  display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
+}
+.history-card:hover { border-color: var(--border-hi); }
+.history-title { font-size: 14px; font-weight: 600; color: var(--txt-0); }
+.history-meta  { font-size: 12px; color: var(--txt-2); margin-top: 3px; }
+.history-score {
+  font-size: 20px; font-weight: 800; color: var(--accent);
+  min-width: 50px; text-align: right;
+}
+
+/* ── Home hero ── */
+.hero {
+  min-height: calc(100vh - 80px);
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 40px 0;
+}
+.hero-eyebrow { font-size: 12px; color: var(--accent); font-weight: 600; letter-spacing: 0.1em; margin-bottom: 16px; }
+.hero-title { font-size: 36px; font-weight: 800; line-height: 1.15; color: var(--txt-0); margin-bottom: 14px; max-width: 560px; }
+.hero-title span { color: var(--accent); }
+.hero-body { font-size: 15px; color: var(--txt-1); max-width: 460px; line-height: 1.7; margin-bottom: 28px; }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn-primary {
+  background: var(--accent); color: #fff; border: none;
+  padding: 12px 24px; border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: opacity .15s;
+}
+.btn-primary:hover { opacity: .88; }
+.btn-ghost {
+  background: none; color: var(--txt-1);
+  border: 1px solid var(--border);
+  padding: 12px 24px; border-radius: var(--radius-sm);
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  transition: all .15s;
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+.hero-stats { display: flex; gap: 32px; margin-top: 40px; }
+.stat-item  { }
+.stat-num   { font-size: 28px; font-weight: 800; color: var(--txt-0); }
+.stat-label { font-size: 12px; color: var(--txt-2); margin-top: 2px; }
+
+.feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 48px; }
+.feature-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.feature-icon { font-size: 24px; margin-bottom: 10px; }
+.feature-title { font-size: 13px; font-weight: 600; color: var(--txt-0); margin-bottom: 6px; }
+.feature-body  { font-size: 12px; color: var(--txt-2); line-height: 1.6; }
+
+/* ── Toasts ── */
+#toast-container {
+  position: fixed; bottom: 24px; right: 24px; z-index: 1000;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.toast {
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 16px;
+  font-size: 13px; color: var(--txt-0);
+  box-shadow: var(--shadow); min-width: 240px;
+  animation: slideIn .2s ease;
+}
+.toast.success { border-left: 3px solid var(--green); }
+.toast.error   { border-left: 3px solid var(--red); }
+.toast.info    { border-left: 3px solid var(--accent); }
+@keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ── Loader ── */
+.loader { display: flex; gap: 5px; justify-content: center; padding: 24px; }
+.loader span {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  animation: bounce .8s ease-in-out infinite;
+}
+.loader span:nth-child(2) { animation-delay: .15s; }
+.loader span:nth-child(3) { animation-delay: .3s; }
+@keyframes bounce { 0%,80%,100% { transform: scale(.6); opacity: .4; } 40% { transform: scale(1); opacity: 1; } }
+
+/* ── Attempt info bar ── */
+.attempt-bar {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.attempt-bar .label { font-size: 11px; color: var(--txt-2); }
+.attempt-bar .val   { font-size: 12px; color: var(--txt-0); font-weight: 600; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  nav  { position: relative; height: auto; flex-direction: row; }
+  .problem-layout { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ── Sidebar navigation ── -->
+  <nav>
+    <div class="nav-logo">
+      <div class="logo-icon">L</div>
+      <div>
+        <div class="logo-text">LLD Practice</div>
+        <div class="logo-sub">DESIGN · CODE · IMPROVE</div>
+      </div>
+    </div>
+    <ul>
+      <li><a href="#" class="nav-link active" data-page="home"><span class="icon">⌂</span> Home</a></li>
+      <li><a href="#" class="nav-link" data-page="problems"><span class="icon">⊞</span> Problems</a></li>
+      <li><a href="#" class="nav-link" data-page="history"><span class="icon">◷</span> My Progress</a></li>
+    </ul>
+    <div class="nav-footer">
+      <div class="user-chip">
+        <div class="avatar">G</div>
+        <div>
+          <div style="font-weight:600;font-size:12px;">Guest User</div>
+          <div style="font-size:10px;color:var(--txt-2);">Practice mode</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Main content ── -->
+  <main>
+
+    <!-- HOME PAGE -->
+    <div class="page active" id="page-home" style="max-width:800px;">
+      <div class="hero">
+        <div class="hero-eyebrow">LOW-LEVEL DESIGN PLATFORM</div>
+        <h1 class="hero-title">Master LLD, <span>one problem</span> at a time.</h1>
+        <p class="hero-body">
+          Pick a real-world design problem. Think through your architecture. Submit your
+          solution — design, code, or both — and get structured AI feedback across
+          every dimension of good OOP design.
+        </p>
+        <div class="hero-actions">
+          <button class="btn-primary" onclick="navigate('problems')">Browse Problems</button>
+          <button class="btn-ghost" onclick="navigate('history')">My Progress</button>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-item"><div class="stat-num" id="stat-problems">5</div><div class="stat-label">Curated Problems</div></div>
+          <div class="stat-item"><div class="stat-num">7</div><div class="stat-label">Rubric Dimensions</div></div>
+          <div class="stat-item"><div class="stat-num">AI</div><div class="stat-label">Powered Feedback</div></div>
+        </div>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">⟩_</div>
+            <div class="feature-title">Design or Code</div>
+            <div class="feature-body">Submit a text design, working code, or both. The platform evaluates what matters: your thinking.</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">◈</div>
+            <div class="feature-title">Structured Rubric</div>
+            <div class="feature-body">Each problem has a rubric. You see exactly what is checked: responsibilities, coupling, extensibility, edge cases.</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">↺</div>
+            <div class="feature-title">Retry Loop</div>
+            <div class="feature-body">Every submission is saved. See your scores improve as you iterate on the same problem with better design.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROBLEMS PAGE -->
+    <div class="page" id="page-problems">
+      <div class="page-header">
+        <div class="page-title">Problems</div>
+        <div class="page-sub">Choose a problem, design a solution, and get AI feedback.</div>
+      </div>
+      <div class="filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="easy">Easy</button>
+        <button class="filter-btn" data-filter="medium">Medium</button>
+        <button class="filter-btn" data-filter="hard">Hard</button>
+      </div>
+      <div class="problems-grid" id="problems-grid">
+        <div class="loader"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+
+    <!-- PROBLEM DETAIL PAGE -->
+    <div class="page" id="page-problem-detail">
+      <button class="back-btn" onclick="navigate('problems')">← Back to Problems</button>
+      <div id="problem-detail-content"></div>
+    </div>
+
+    <!-- HISTORY PAGE -->
+    <div class="page" id="page-history">
+      <div class="page-header">
+        <div class="page-title">My Progress</div>
+        <div class="page-sub">All your attempts and AI feedback, in one place.</div>
+      </div>
+      <div id="history-content">
+        <div class="loader"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// ─────────────────────────────────────────────
+//  API client
+// ─────────────────────────────────────────────
+const API = {
+  async get(path) {
+    const r = await fetch(`/api${path}`);
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error || r.statusText); }
+    return r.json();
+  },
+  async post(path, body) {
+    const r = await fetch(`/api${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error || r.statusText); }
+    return r.json();
+  }
+};
+
+// ─────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────
+const state = {
+  userId:         'guest-' + Math.random().toString(36).slice(2, 8),
+  problems:       [],
+  currentProblem: null,
+  currentAttempt: null,
+  currentSub:     null,
+  pollingTimer:   null,
+};
+
+// ─────────────────────────────────────────────
+//  Navigation
+// ─────────────────────────────────────────────
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(a => a.classList.remove('active'));
+
+  const target = document.getElementById(`page-${page}`);
+  if (target) target.classList.add('active');
+
+  const navLink = document.querySelector(`.nav-link[data-page="${page}"]`);
+  if (navLink) navLink.classList.add('active');
+
+  if (page === 'problems') loadProblems();
+  if (page === 'history')  loadHistory();
+}
+
+document.querySelectorAll('.nav-link').forEach(a => {
+  a.addEventListener('click', e => { e.preventDefault(); navigate(a.dataset.page); });
+});
+
+// ─────────────────────────────────────────────
+//  Problems list
+// ─────────────────────────────────────────────
+const ICONS = { 'parking-lot': '🚗', 'elevator-system': '🛗', 'rate-limiter': '⚡', 'vending-machine': '🎰', 'file-system': '📁' };
+const CATS  = { oop: 'OOP', patterns: 'Patterns', concurrency: 'Concurrency' };
+
+async function loadProblems() {
+  if (state.problems.length > 0) { renderProblems(state.problems); return; }
+  document.getElementById('problems-grid').innerHTML = '<div class="loader"><span></span><span></span><span></span></div>';
+  try {
+    state.problems = await API.get('/problems');
+    document.getElementById('stat-problems').textContent = state.problems.length;
+    renderProblems(state.problems);
+  } catch(e) { toast('Failed to load problems: ' + e.message, 'error'); }
+}
+
+function renderProblems(problems) {
+  const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
+  const filtered = activeFilter === 'all' ? problems : problems.filter(p => p.difficulty === activeFilter);
+
+  document.getElementById('problems-grid').innerHTML = filtered.map(p => `
+    <div class="problem-card" onclick="openProblem('${p.id}')">
+      <div class="problem-header">
+        <span class="problem-icon">${ICONS[p.id] || '🔧'}</span>
+        <span class="badge ${p.difficulty}">${p.difficulty}</span>
+      </div>
+      <div class="problem-title">${p.title}</div>
+      <div class="problem-desc">${p.statement.slice(0, 100)}...</div>
+      <div class="problem-meta">
+        <span class="meta-item"><span>◫</span> ${CATS[p.category] || p.category}</span>
+      </div>
+    </div>
+  `).join('') || '<p style="color:var(--txt-2);padding:20px;">No problems match this filter.</p>';
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderProblems(state.problems);
+  });
+});
+
+// ─────────────────────────────────────────────
+//  Problem detail
+// ─────────────────────────────────────────────
+async function openProblem(id) {
+  navigate('problem-detail');
+  document.getElementById('problem-detail-content').innerHTML = '<div class="loader"><span></span><span></span><span></span></div>';
+
+  try {
+    const problem = await API.get(`/problems/${id}`);
+    state.currentProblem = problem;
+
+    // Start or resume attempt
+    const attempt = await API.post('/attempts', { userId: state.userId, problemId: id });
+    state.currentAttempt = attempt;
+    state.currentSub = null;
+
+    renderProblemDetail(problem, attempt);
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+    navigate('problems');
+  }
+}
+
+function renderProblemDetail(problem, attempt) {
+  const criteriaRows = problem.rubric.criteria.map(c => `
+    <tr>
+      <td style="font-weight:600;color:var(--txt-0)">${c.name}</td>
+      <td>${Math.round(c.weight * 100)}%</td>
+      <td><span class="det-badge ${c.deterministic ? 'yes' : 'no'}">${c.deterministic ? 'Rule' : 'AI'}</span></td>
+    </tr>
+  `).join('');
+
+  document.getElementById('problem-detail-content').innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap;">
+      <h2 style="font-size:20px;font-weight:700;">${problem.title}</h2>
+      <span class="badge ${problem.difficulty}">${problem.difficulty}</span>
+    </div>
+
+    <div class="attempt-bar">
+      <span class="label">Attempt ID</span><span class="val">${attempt.id.slice(0,8)}…</span>
+      <span style="color:var(--border)">|</span>
+      <span class="label">Submissions</span><span class="val" id="sub-count">${attempt.submissionCount}</span>
+    </div>
+
+    <div class="problem-layout">
+      <!-- LEFT: problem info -->
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <span class="section-label">Problem Statement</span>
+          <p style="font-size:13px;color:var(--txt-1);line-height:1.7;">${problem.statement}</p>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <span class="section-label">Requirements</span>
+          <ul class="req-list">
+            ${problem.requirements.map((r, i) => `
+              <li><span class="req-num">${String(i+1).padStart(2,'0')}</span><span>${r}</span></li>
+            `).join('')}
+          </ul>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <span class="section-label">Constraints</span>
+          <ul class="req-list">
+            ${problem.constraints.map(c => `<li><span class="req-num">•</span><span>${c}</span></li>`).join('')}
+          </ul>
+        </div>
+
+        <div class="card">
+          <span class="section-label">Rubric (${problem.rubric.criteria.length} criteria)</span>
+          <table class="rubric-table">
+            <thead>
+              <tr><th>Criterion</th><th>Weight</th><th>Evaluated by</th></tr>
+            </thead>
+            <tbody>${criteriaRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RIGHT: editor + feedback -->
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <span class="section-label">Hints & Topics</span>
+          <div class="hints-list">
+            ${problem.hints.map(h => `<span class="hint-tag">${h}</span>`).join('')}
+          </div>
+        </div>
+
+        <div class="card" id="editor-card">
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="design">Design</button>
+            <button class="tab-btn" data-tab="code">Code</button>
+          </div>
+
+          <div id="tab-design">
+            <textarea id="design-input" style="min-height:220px;" placeholder="Describe your design:
+• List your main classes and their responsibilities
+• Explain key relationships and interfaces
+• Describe your approach to each requirement
+• Note trade-offs and assumptions
+• Mention patterns you used and why"></textarea>
+          </div>
+          <div id="tab-code" style="display:none;">
+            <textarea class="code-editor" id="code-input" placeholder="// Paste your code here (Java, Python, etc.)
+// Focus on interfaces, key classes, and relationships.
+
+public class ParkingLot {
+    // ...
+}"></textarea>
+          </div>
+
+          <button class="submit-btn" id="submit-btn" onclick="submitSolution()">
+            Submit Solution
+          </button>
+        </div>
+
+        <!-- Evaluation area -->
+        <div id="eval-area"></div>
+      </div>
+    </div>
+  `;
+
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-design').style.display = btn.dataset.tab === 'design' ? '' : 'none';
+      document.getElementById('tab-code').style.display   = btn.dataset.tab === 'code'   ? '' : 'none';
+    });
+  });
+}
+
+// ─────────────────────────────────────────────
+//  Submission
+// ─────────────────────────────────────────────
+async function submitSolution() {
+  const design = document.getElementById('design-input')?.value.trim() || '';
+  const code   = document.getElementById('code-input')?.value.trim()   || '';
+
+  if (!design && !code) { toast('Add at least a design description or code before submitting.', 'error'); return; }
+  if ((design + code).length < 50) { toast('Submission is too short — expand your design.', 'error'); return; }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  try {
+    const sub = await API.post(`/attempts/${state.currentAttempt.id}/submit`, {
+      format:  design && code ? 'combined' : design ? 'text' : 'code',
+      content: { design, code },
+    });
+    state.currentSub = sub;
+
+    // Update sub count
+    const countEl = document.getElementById('sub-count');
+    if (countEl) countEl.textContent = parseInt(countEl.textContent || '0') + 1;
+
+    toast('Submitted! AI evaluation is running…', 'info');
+    renderEvalStatus(sub.status, null);
+    startPolling(state.currentAttempt.id, sub.id);
+  } catch(e) {
+    toast(e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Submit Solution';
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Polling for evaluation result
+// ─────────────────────────────────────────────
+function startPolling(attemptId, subId) {
+  if (state.pollingTimer) clearInterval(state.pollingTimer);
+  let tries = 0;
+  state.pollingTimer = setInterval(async () => {
+    tries++;
+    if (tries > 60) { clearInterval(state.pollingTimer); return; } // 2 min max
+    try {
+      const { submission, evaluation } = await API.get(`/attempts/${attemptId}/submissions/${subId}`);
+      if (submission.status === 'completed' && evaluation) {
+        clearInterval(state.pollingTimer);
+        renderEvalStatus('completed', evaluation);
+        enableResubmit();
+        toast('Evaluation complete!', 'success');
+      } else if (submission.status === 'failed') {
+        clearInterval(state.pollingTimer);
+        renderEvalStatus('failed', null);
+        enableResubmit();
+        toast('Evaluation failed — try resubmitting.', 'error');
+      } else {
+        renderEvalStatus(submission.status, null);
+      }
+    } catch { /* network blip, keep polling */ }
+  }, 2000);
+}
+
+function enableResubmit() {
+  const btn = document.getElementById('submit-btn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Submit Revised Solution'; }
+}
+
+// ─────────────────────────────────────────────
+//  Evaluation rendering
+// ─────────────────────────────────────────────
+function renderEvalStatus(status, evaluation) {
+  const area = document.getElementById('eval-area');
+  if (!area) return;
+
+  if (status === 'submitted' || status === 'evaluating') {
+    area.innerHTML = `
+      <div class="card eval-panel" style="text-align:center;padding:28px;">
+        <div style="margin-bottom:12px;"><span class="status-pill evaluating"><span class="pulse"></span> Evaluating</span></div>
+        <div style="color:var(--txt-2);font-size:13px;">AI is reviewing your design against the rubric…</div>
+        <div class="loader" style="margin-top:16px;"><span></span><span></span><span></span></div>
+      </div>`;
+    return;
+  }
+
+  if (status === 'failed') {
+    area.innerHTML = `
+      <div class="card eval-panel" style="text-align:center;padding:28px;">
+        <div style="margin-bottom:8px;"><span class="status-pill failed">✕ Failed</span></div>
+        <div style="color:var(--txt-2);font-size:13px;">Evaluation could not complete. Resubmit to try again.</div>
+      </div>`;
+    return;
+  }
+
+  if (!evaluation) return;
+
+  const scoreColor = evaluation.overallScore >= 80 ? 'var(--green)' : evaluation.overallScore >= 60 ? 'var(--yellow)' : 'var(--red)';
+
+  const criteriaHtml = (evaluation.results || []).map((r, idx) => {
+    const criterion = state.currentProblem?.rubric?.criteria?.find(c => c.id === r.criterionId);
+    const name    = criterion?.name || r.criterionId;
+    const pct     = (r.score / 10) * 100;
+    const barColor = r.score >= 8 ? 'var(--green)' : r.score >= 5 ? 'var(--yellow)' : 'var(--red)';
+
+    return `
+    <div class="criterion-row">
+      <div class="criterion-header" onclick="toggleCriterion(${idx})">
+        <span class="criterion-score" style="color:${barColor}">${r.score}/10</span>
+        <div class="score-bar-wrap"><div class="score-bar" style="width:${pct}%;background:${barColor}"></div></div>
+        <span class="criterion-name">${name}</span>
+        <span class="conf-dot ${r.confidence}" title="Confidence: ${r.confidence}"></span>
+        <span style="color:var(--txt-2);font-size:11px;margin-left:4px;" id="chevron-${idx}">▾</span>
+      </div>
+      <div class="criterion-body" id="criterion-body-${idx}">
+        ${r.evidence ? `<div class="ev-row"><div class="ev-label">EVIDENCE</div><div class="ev-text">${r.evidence}</div></div>` : ''}
+        ${r.concern  ? `<div class="ev-row"><div class="ev-label">CONCERN</div><div class="ev-text">${r.concern}</div></div>` : ''}
+        ${r.suggestion ? `<div class="ev-suggestion">💡 ${r.suggestion}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  area.innerHTML = `
+    <div class="card eval-panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <span style="font-size:13px;font-weight:600;color:var(--txt-0)">Evaluation Result</span>
+        <span class="status-pill completed">✓ Complete</span>
+      </div>
+
+      <div class="score-ring" style="border-color:${scoreColor}">
+        <div class="score-num" style="color:${scoreColor}">${evaluation.overallScore}</div>
+        <div class="score-sub">/ 100</div>
+      </div>
+      <div class="score-summary">${evaluation.summary}</div>
+
+      <div style="margin-bottom:10px;">
+        <span class="section-label" style="font-size:10px;">RUBRIC BREAKDOWN</span>
+      </div>
+      ${criteriaHtml}
+    </div>
+  `;
+}
+
+function toggleCriterion(idx) {
+  const body    = document.getElementById(`criterion-body-${idx}`);
+  const chevron = document.getElementById(`chevron-${idx}`);
+  if (!body) return;
+  const open = body.classList.toggle('open');
+  if (chevron) chevron.textContent = open ? '▴' : '▾';
+}
+
+// ─────────────────────────────────────────────
+//  History page
+// ─────────────────────────────────────────────
+async function loadHistory() {
+  document.getElementById('history-content').innerHTML = '<div class="loader"><span></span><span></span><span></span></div>';
+  try {
+    const history = await API.get(`/users/${state.userId}/history`);
+    if (history.length === 0) {
+      document.getElementById('history-content').innerHTML = `
+        <div style="text-align:center;padding:60px 20px;">
+          <div style="font-size:32px;margin-bottom:12px;">◷</div>
+          <div style="color:var(--txt-2);font-size:14px;">No attempts yet. Solve your first problem to track progress.</div>
+          <button class="btn-primary" style="margin-top:20px;" onclick="navigate('problems')">Browse Problems</button>
+        </div>`;
+      return;
+    }
+
+    document.getElementById('history-content').innerHTML = `
+      <div class="history-grid">
+        ${history.map(h => {
+          const score    = h.evaluation?.overallScore;
+          const scoreStr = score !== undefined ? `${score}` : '—';
+          const scoreClr = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--yellow)' : score !== undefined ? 'var(--red)' : 'var(--txt-2)';
+          const dateStr  = new Date(h.attempt.lastActiveAt).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+
+          return `
+          <div class="history-card">
+            <div>
+              <div class="history-title">${h.problem?.title || h.attempt.problemId}</div>
+              <div class="history-meta">
+                <span class="badge ${h.problem?.difficulty || 'medium'}">${h.problem?.difficulty || '—'}</span>
+                &nbsp; ${h.attempt.submissionCount} submission${h.attempt.submissionCount !== 1 ? 's' : ''} &nbsp;·&nbsp; ${dateStr}
+              </div>
+              ${h.evaluation ? `<div style="font-size:12px;color:var(--txt-2);margin-top:6px;">${h.evaluation.summary}</div>` : '<div style="font-size:12px;color:var(--txt-2);margin-top:6px;">Not yet evaluated</div>'}
+            </div>
+            <div>
+              <div class="history-score" style="color:${scoreClr}">${scoreStr}</div>
+              <div style="font-size:10px;color:var(--txt-2);text-align:right;">/ 100</div>
+              <button class="filter-btn" style="margin-top:8px;font-size:11px;" onclick="openProblem('${h.attempt.problemId}')">Retry</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  } catch(e) {
+    toast('Could not load history: ' + e.message, 'error');
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Toast notifications
+// ─────────────────────────────────────────────
+function toast(msg, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }, 4000);
+}
+
+// ─────────────────────────────────────────────
+//  Boot
+// ─────────────────────────────────────────────
+loadProblems(); // preload
+</script>
+</body>
+</html>
